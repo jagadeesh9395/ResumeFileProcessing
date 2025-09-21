@@ -19,5 +19,6 @@ public class Resume {
     private List<String> skills;
     private List<Experience> experiences;
     private List<Education> educations;
+    private String fileId;  // Add this field to store GridFS file ID
 }
 

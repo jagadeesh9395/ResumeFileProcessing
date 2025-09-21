@@ -18,7 +18,9 @@
             <h3 th:text="${resume.name}"></h3>
             <p><strong>Email:</strong> <span th:text="${resume.email}"></span></p>
             <p><strong>Skills:</strong> <span th:text="${#strings.listJoin(resume.skills, ', ')}"></span></p>
-            <a th:href="@{/resumes/preview/} + ${resume.id}" class="btn btn-primary btn-sm">View Details</a>
+            <a th:href="@{/resumes/download/{id}(id=${resume.id})}"  class="btn btn-primary btn-sm">View Details</a>
+<!--            <a th:href="@{/resumes/download/{id}(id=${resume.id})}"-->
+<!--               th:text="${resume.fileName}">Download</a>-->
         </div>
     </div>
 

@@ -1,8 +1,13 @@
 package com.kjr.rfp.controller;
 
 import com.kjr.rfp.model.Resume;
+import com.kjr.rfp.service.FileStorageService;
 import com.kjr.rfp.service.parser.ResumeParserService;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.data.mongodb.gridfs.GridFsResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -16,9 +21,11 @@ import java.util.Optional;
 public class ResumeController {
     private final ResumeParserService resumeParserService;
 
-    @Autowired
-    public ResumeController(ResumeParserService resumeParserService) {
+    private final FileStorageService fileStorageService;
+
+    public ResumeController(ResumeParserService resumeParserService, FileStorageService fileStorageService) {
         this.resumeParserService = resumeParserService;
+        this.fileStorageService = fileStorageService;
     }
 
     @GetMapping("/upload")
@@ -30,7 +37,9 @@ public class ResumeController {
     @PostMapping("/upload")
     public String uploadResume(@RequestParam("file") MultipartFile file, Model model) {
         try {
+            String fileId = resumeParserService.storeFile(file);
             Resume resume = resumeParserService.parseResume(file);
+            resume.setFileId(fileId);
             Resume savedResume = resumeParserService.saveResume(resume);
             model.addAttribute("resume", savedResume);
             return "preview-resume";
@@ -68,5 +77,22 @@ public class ResumeController {
         Optional<Optional<Resume>> resume = resumeParserService.getResumeById(id);
         model.addAttribute("resume", resume);
         return "preview-resume";
+    }
+
+    @GetMapping("/download/{id}")
+    public ResponseEntity<Resource> downloadFile(@PathVariable String id) {
+        Resume resume = resumeParserService.findById(id).orElseThrow(
+                () -> new RuntimeException("Resume not found")
+        );
+
+        GridFsResource resource = fileStorageService.getFileResource(resume.getFileId());
+        if (resource == null) {
+            throw new RuntimeException("File not found");
+        }
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resume.getFileName() + "\"")
+                .contentType(MediaType.parseMediaType(resource.getContentType()))
+                .body(resource);
     }
 }
