@@ -3,17 +3,23 @@ package com.kjr.rfp.controller;
 import com.kjr.rfp.model.Resume;
 import com.kjr.rfp.service.FileStorageService;
 import com.kjr.rfp.service.parser.ResumeParserService;
+import jakarta.servlet.http.HttpServletResponse;
+import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.Resource;
 import org.springframework.data.mongodb.gridfs.GridFsResource;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.List;
 import java.util.Optional;
 
@@ -66,6 +72,7 @@ public class ResumeController {
                 .filter(r -> r.getName().toLowerCase().contains(query.toLowerCase()) ||
                         r.getEmail().toLowerCase().contains(query.toLowerCase()) ||
                         r.getSkills().toString().toLowerCase().contains(query.toLowerCase()))
+                .map(this::maskResumeDetails) // Add this line to mask sensitive data
                 .toList();
 
         model.addAttribute("resumes", filteredResumes);
@@ -75,26 +82,86 @@ public class ResumeController {
 
     @GetMapping("/preview/{id}")
     public String previewResume(@PathVariable String id, Model model) {
-        // You'll need to implement findById in your service/repository
-        Optional<Optional<Resume>> resume = resumeParserService.getResumeById(id);
+        Optional<Resume> resumeOpt = resumeParserService.getResumeById(id)
+                .orElseThrow(() -> new RuntimeException("Resume not found"));
+
+        Resume resume = resumeOpt.get();
+        // Mask sensitive information
+        resume.setEmail(maskEmail(resume.getEmail()));
+        if (resume.getPhone() != null) {
+            resume.setPhone(maskPhone(resume.getPhone()));
+        }
+
         model.addAttribute("resume", resume);
         return "preview-resume";
     }
 
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/download/{id}")
-    public ResponseEntity<Resource> downloadFile(@PathVariable String id) {
-        Resume resume = resumeParserService.findById(id).orElseThrow(
-                () -> new RuntimeException("Resume not found")
-        );
+    public void downloadFile(@PathVariable String id, HttpServletResponse response) {
+        try {
+            // Authentication check
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated()) {
+                throw new AccessDeniedException("Authentication required");
+            }
 
-        GridFsResource resource = fileStorageService.getFileResource(resume.getFileId());
-        if (resource == null) {
-            throw new RuntimeException("File not found");
+            Resume resume = resumeParserService.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Resume not found"));
+
+            GridFsResource resource = fileStorageService.getFileResource(resume.getFileId());
+            if (resource == null) {
+                throw new RuntimeException("File not found");
+            }
+
+            // Set response headers
+            response.setHeader(HttpHeaders.CONTENT_DISPOSITION,
+                    "attachment; filename=\"" + resume.getFileName() + "\"");
+            response.setContentType(resource.getContentType());
+
+            // Stream the file
+            try (InputStream inputStream = resource.getInputStream();
+                 OutputStream outputStream = response.getOutputStream()) {
+                IOUtils.copy(inputStream, outputStream);
+            }
+
+        } catch (IOException e) {
+            throw new RuntimeException("Error downloading file", e);
         }
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resume.getFileName() + "\"")
-                .contentType(MediaType.parseMediaType(resource.getContentType()))
-                .body(resource);
     }
+
+
+    private String maskEmail(String email) {
+        if (email == null || email.isEmpty()) return "";
+        int atIndex = email.indexOf('@');
+        if (atIndex <= 2) return "***" + email.substring(atIndex);
+        return email.substring(0, 2) + "***" + email.substring(atIndex);
+    }
+
+    private String maskPhone(String phone) {
+        if (phone == null || phone.isEmpty()) return "";
+        if (phone.length() <= 4) return "****";
+        return "****" + phone.substring(phone.length() - 4);
+    }
+
+    private Resume maskResumeDetails(Resume resume) {
+        // Create a copy of the resume to avoid modifying the original
+        Resume maskedResume = new Resume();
+        maskedResume.setId(resume.getId());
+        maskedResume.setName(resume.getName());
+        maskedResume.setEmail(maskEmail(resume.getEmail()));
+        maskedResume.setPhone(maskPhone(resume.getPhone()));
+        maskedResume.setSkills(resume.getSkills());
+        maskedResume.setFileId(resume.getFileId());
+        maskedResume.setFileName(resume.getFileName());
+        // Add any other fields you need to copy
+        return maskedResume;
+    }
+
+
+    @GetMapping("/download/thanks")
+    public String showThanksPage() {
+        return "download-thanks";
+    }
+
 }

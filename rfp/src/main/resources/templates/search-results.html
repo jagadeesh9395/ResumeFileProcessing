@@ -18,9 +18,12 @@
             <h3 th:text="${resume.name}"></h3>
             <p><strong>Email:</strong> <span th:text="${resume.email}"></span></p>
             <p><strong>Skills:</strong> <span th:text="${#strings.listJoin(resume.skills, ', ')}"></span></p>
-            <a th:href="@{/resumes/download/{id}(id=${resume.id})}"  class="btn btn-primary btn-sm">View Details</a>
-<!--            <a th:href="@{/resumes/download/{id}(id=${resume.id})}"-->
-<!--               th:text="${resume.fileName}">Download</a>-->
+            <a th:href="@{/resumes/preview/{id}(id=${resume.id})}" class="btn btn-primary btn-sm">View Details</a>
+            <!-- In your search-results.html or preview-resume.html -->
+            <a th:href="@{/resumes/download/{id}(id=${resume.id})}"
+               onclick="setTimeout(() => window.location.href='/resumes/download/thanks', 1000)"
+               class="btn btn-success btn-sm ms-2">Download</a>
+
         </div>
     </div>
 
