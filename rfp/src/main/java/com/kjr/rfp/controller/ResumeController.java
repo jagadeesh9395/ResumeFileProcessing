@@ -3,6 +3,7 @@ package com.kjr.rfp.controller;
 import com.kjr.rfp.model.Resume;
 import com.kjr.rfp.service.FileStorageService;
 import com.kjr.rfp.service.parser.ResumeParserService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.data.mongodb.gridfs.GridFsResource;
 import org.springframework.http.HttpHeaders;
@@ -23,6 +24,7 @@ public class ResumeController {
 
     private final FileStorageService fileStorageService;
 
+    @Autowired
     public ResumeController(ResumeParserService resumeParserService, FileStorageService fileStorageService) {
         this.resumeParserService = resumeParserService;
         this.fileStorageService = fileStorageService;
