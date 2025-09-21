@@ -4,6 +4,7 @@ import com.kjr.rfp.model.Education;
 import com.kjr.rfp.model.Experience;
 import com.kjr.rfp.model.Resume;
 import com.kjr.rfp.repository.ResumeRepository;
+import com.kjr.rfp.service.FileStorageService;
 import com.kjr.rfp.service.parser.ResumeParserService;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -25,12 +26,13 @@ import java.util.regex.Pattern;
 @Service
 public class ResumeParserServiceImpl implements ResumeParserService {
     ResumeRepository resumeRepository;
+    FileStorageService fileStorageService;
 
     @Autowired
-    public ResumeParserServiceImpl(ResumeRepository resumeRepository) {
+    public ResumeParserServiceImpl(ResumeRepository resumeRepository, FileStorageService fileStorageService) {
         this.resumeRepository = resumeRepository;
+        this.fileStorageService = fileStorageService;
     }
-
 
     @Override
     public Resume parseResume(MultipartFile file) throws Exception {
@@ -68,6 +70,16 @@ public class ResumeParserServiceImpl implements ResumeParserService {
     @Override
     public Optional<Optional<Resume>> getResumeById(String id) {
         return Optional.of(resumeRepository.findById(id));
+    }
+
+    @Override
+    public String storeFile(MultipartFile file) throws IOException {
+        return fileStorageService.storeFile(file);
+    }
+
+    @Override
+    public Optional<Resume> findById(String id) {
+        return resumeRepository.findById(id);
     }
 
     private String extractTextFromFile(MultipartFile file) throws IOException {
