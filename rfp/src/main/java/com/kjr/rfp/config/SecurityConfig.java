@@ -21,14 +21,15 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/resumes/download/**").authenticated()
+                        .requestMatchers("/resumes/thanks").permitAll()
                         .anyRequest().permitAll()
                 )
                 .formLogin(form -> form
-                        .loginPage("/login")
+                                .loginPage("/login")
 //                        .loginProcessingUrl("/perform_login")
-                                .defaultSuccessUrl("/download/thanks")
-                        .failureUrl("/login?error=true")
-                        .permitAll()
+                                .defaultSuccessUrl("/resumes/thanks")
+                                .failureUrl("/login?error=true")
+                                .permitAll()
                 )
                 .logout(logout -> logout
                         .logoutSuccessUrl("/login?logout")

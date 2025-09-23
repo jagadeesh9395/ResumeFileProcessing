@@ -4,14 +4,35 @@
     <meta charset="UTF-8">
     <title>Download Complete</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .thanks-container {
+            max-width: 600px;
+            margin: 100px auto;
+            padding: 20px;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
-<div class="container mt-5">
-    <div class="alert alert-success text-center">
-        <h2>Thank you for downloading!</h2>
-        <p>Your download should start automatically. If it doesn't, please try again.</p>
-        <a th:href="@{/resumes/search}" class="btn btn-primary mt-3">Back to Search</a>
+<div class="container">
+    <div class="thanks-container">
+        <div class="alert alert-success mb-4">
+            <h2>Thank You for Downloading!</h2>
+        </div>
+        <p>The resume has been successfully downloaded to your device.</p>
+        <div class="mt-4">
+            <a href="/resumes/search" class="btn btn-primary">Back to Search</a>
+            <a href="/resumes/upload" class="btn btn-secondary ms-2">Upload Another Resume</a>
+        </div>
     </div>
 </div>
+<script th:inline="javascript">
+    // Check if we came from a download
+    if (document.referrer.includes('/resumes/download/')) {
+        // Show download-specific message
+        document.getElementById('download-message').style.display = 'block';
+    }
+</script>
+
 </body>
 </html>

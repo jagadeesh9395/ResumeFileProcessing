@@ -3,6 +3,7 @@ package com.kjr.rfp.controller;
 import com.kjr.rfp.model.Resume;
 import com.kjr.rfp.service.FileStorageService;
 import com.kjr.rfp.service.parser.ResumeParserService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +13,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -98,7 +100,7 @@ public class ResumeController {
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/download/{id}")
-    public void downloadFile(@PathVariable String id, HttpServletResponse response) {
+    public void downloadFile(@PathVariable String id, HttpServletResponse response, HttpServletRequest request) {
         try {
             // Authentication check
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -125,9 +127,42 @@ public class ResumeController {
                 IOUtils.copy(inputStream, outputStream);
             }
 
+            // Set a session attribute to indicate successful download
+            request.getSession().setAttribute("justDownloaded", true);
+
+            // Redirect to thanks page after download
+            response.sendRedirect("/resumes/thanks");
+            return;
+
         } catch (IOException e) {
             throw new RuntimeException("Error downloading file", e);
         }
+    }
+
+
+    @GetMapping("/thanks")
+    public String downloadThanks(Model model, HttpServletRequest request) {
+        // Check if the user just downloaded a file
+        Boolean justDownloaded = (Boolean) request.getSession().getAttribute("justDownloaded");
+
+        if (justDownloaded == null || !justDownloaded) {
+            // If not coming from a download, redirect to search page
+            return "redirect:/resumes/search";
+        }
+
+        // Clear the session attribute
+        request.getSession().removeAttribute("justDownloaded");
+
+        model.addAttribute("message", "Thank you for downloading the resume!");
+        return "download-thanks";
+    }
+
+
+    @GetMapping("/logout-after-download")
+    public String logoutAfterDownload(HttpServletRequest request) {
+        // Manually invalidate the session
+        new SecurityContextLogoutHandler().logout(request, null, null);
+        return "redirect:/login?logout";
     }
 
 
@@ -156,12 +191,6 @@ public class ResumeController {
         maskedResume.setFileName(resume.getFileName());
         // Add any other fields you need to copy
         return maskedResume;
-    }
-
-
-    @GetMapping("/download/thanks")
-    public String showThanksPage() {
-        return "download-thanks";
     }
 
 }
