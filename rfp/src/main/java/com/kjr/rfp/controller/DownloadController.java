@@ -66,6 +66,7 @@ public class DownloadController {
             throw new RuntimeException("File not found");
         }
 
+
         // Set response headers
         response.setHeader(HttpHeaders.CONTENT_DISPOSITION,
                 "attachment; filename=\"" + resume.getFileName() + "\"");
@@ -80,6 +81,8 @@ public class DownloadController {
         // Increment download count
         request.getSession().setAttribute("downloadCount", downloadCount + 1);
         request.getSession().setAttribute("justDownloaded", true);
+        // Store filename in session for the thanks page
+        request.getSession().setAttribute("downloadedFilename", resume.getFileName());
     }
 
     @GetMapping("/limit-reached")
@@ -98,10 +101,13 @@ public class DownloadController {
             return "redirect:/resumes/search";
         }
 
-        // Clear the session attribute
-        request.getSession().removeAttribute("justDownloaded");
+        // Get the filename from session
+        String filename = (String) request.getSession().getAttribute("downloadedFilename");
+        model.addAttribute("filename", filename); // Pass to template via model
 
-        model.addAttribute("message", "Thank you for downloading the resume!");
+        // Clear the session attributes
+        request.getSession().removeAttribute("justDownloaded");
+        request.getSession().removeAttribute("downloadedFilename");
         return "download-thanks";
     }
 

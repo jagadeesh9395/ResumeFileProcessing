@@ -1,96 +1,201 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Resume Preview</title>
+    <title th:text="${resume.name} + ' | Resume Preview'">Resume Preview</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @media (max-width: 768px) {
-            .d-flex.justify-content-between {
-                flex-direction: column;
-                gap: 1rem;
-            }
-            .card-body p {
-                word-break: break-word;
-            }
+        :root {
+            --primary-color: #4e73df;
+            --secondary-color: #f8f9fc;
+            --highlight-color: #f6c23e;
+            --success-color: #1cc88a;
+        }
+
+        body {
+            background-color: var(--secondary-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .resume-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #224abe 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+            margin-bottom: 1.5rem;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-header {
+            background-color: white;
+            border-bottom: 2px solid var(--primary-color);
+            font-weight: 600;
+        }
+
+        .highlight {
+            background-color: rgba(78, 115, 223, 0.1);
+            padding: 0.5rem;
+            border-left: 4px solid var(--primary-color);
+            margin: 0.5rem 0;
+        }
+
+        .download-btn {
+            background-color: var(--success-color);
+            border: none;
+            padding: 0.5rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .download-btn:hover {
+            background-color: #17a673;
+            transform: scale(1.05);
+        }
+
+        .section-icon {
+            color: var(--primary-color);
+            margin-right: 0.5rem;
+        }
+
+        .skill-badge {
+            background-color: var(--primary-color);
+            margin: 0.25rem;
+        }
+
+        .action-buttons {
+            background-color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-top: 2rem;
         }
     </style>
 </head>
 <body>
-<div class="container mt-3 mt-md-5">
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
-        <h1 class="mb-2 mb-md-0" th:text="${resume.name} + ' - Resume'">Resume Preview</h1>
-        <div>
-            <!-- Change the download button URL -->
-            <a th:href="@{/download/resume/{id}(id=${resume.id})}"
-               onclick="setTimeout(() => window.location.href='/download/thanks', 1000)"
-               class="btn btn-success">Download</a>
-        </div>
-    </div>
-
-    <div class="card mb-4">
-        <div class="card-header">
-            <h2 class="h5">Contact Information</h2>
-        </div>
-        <div class="card-body">
-            <p><strong>Email:</strong> <span th:text="${resume.email}"></span></p>
-            <p><strong>Phone:</strong> <span th:text="${resume.phone}"></span></p>
-        </div>
-    </div>
-
-    <div class="card mb-4" th:if="${resume.summary}">
-        <div class="card-header">
-            <h2>Summary</h2>
-        </div>
-        <div class="card-body">
-            <p th:text="${resume.summary}"></p>
-        </div>
-    </div>
-
-    <div class="card mb-4" th:if="${not #lists.isEmpty(resume.skills)}">
-        <div class="card-header">
-            <h2>Skills</h2>
-        </div>
-        <div class="card-body">
-            <ul>
-                <li th:each="skill : ${resume.skills}" th:text="${skill}"></li>
-            </ul>
-        </div>
-    </div>
-
-    <div class="card mb-4" th:if="${not #lists.isEmpty(resume.experiences)}">
-        <div class="card-header">
-            <h2>Experience</h2>
-        </div>
-        <div class="card-body">
-            <div th:each="exp : ${resume.experiences}" class="mb-3">
-                <h5 th:text="${exp.company}"></h5>
-                <p><strong>Position:</strong> <span th:text="${exp.position}"></span></p>
-                <p><strong>Duration:</strong> <span th:text="${exp.duration}"></span></p>
-                <p th:text="${exp.description}"></p>
+<!-- Header Section -->
+<div class="resume-header">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <div>
+                <h1 class="mb-1" th:text="${resume.name}"></h1>
+                <p class="mb-0" th:text="${resume.title}"></p>
+            </div>
+            <div class="mt-2 mt-md-0">
+                <div sec:authorize="isAuthenticated()">
+                    <a th:href="@{/download/resume/{id}(id=${resume.id})}"
+                       class="btn download-btn"
+                       th:onclick="|setTimeout(() => window.location.href='/download/thanks', 1000)|">
+                        <i class="fas fa-download me-2"></i>Download Resume
+                    </a>
+                </div>
+                <div sec:authorize="!isAuthenticated()">
+                    <a th:href="@{/login(redirect=${currentUri})}"
+                       class="btn btn-primary">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login to Download
+                    </a>
+                </div>
             </div>
         </div>
-    </div>
-
-    <div class="card mb-4" th:if="${not #lists.isEmpty(resume.educations)}">
-        <div class="card-header">
-            <h2>Education</h2>
-        </div>
-        <div class="card-body">
-            <div th:each="edu : ${resume.educations}" class="mb-3">
-                <h5 th:text="${edu.institution}"></h5>
-                <p><strong>Degree:</strong> <span th:text="${edu.degree}"></span></p>
-                <p><strong>Field of Study:</strong> <span th:text="${edu.fieldOfStudy}"></span></p>
-                <p><strong>Year:</strong> <span th:text="${edu.year}"></span></p>
-            </div>
-        </div>
-    </div>
-
-    <div class="mt-3 d-flex flex-wrap gap-2">
-        <a href="/resumes/upload" class="btn btn-primary">Upload Another</a>
-        <a href="/resumes/search" class="btn btn-secondary">Search Resumes</a>
     </div>
 </div>
+
+<div class="container">
+    <!-- Contact Information -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="h5 mb-0"><i class="fas fa-user section-icon"></i>Contact Information</h2>
+        </div>
+        <div class="card-body">
+            <div class="highlight">
+                <p><strong><i class="fas fa-envelope me-2"></i>Email:</strong> <span th:text="${resume.email}"></span></p>
+            </div>
+            <div class="highlight">
+                <p><strong><i class="fas fa-phone me-2"></i>Phone:</strong> <span th:text="${resume.phone}"></span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="card" th:if="${resume.summary}">
+        <div class="card-header">
+            <h2 class="h5 mb-0"><i class="fas fa-file-alt section-icon"></i>Summary</h2>
+        </div>
+        <div class="card-body">
+            <p class="highlight" th:text="${resume.summary}"></p>
+        </div>
+    </div>
+
+    <!-- Skills -->
+    <div class="card" th:if="${not #lists.isEmpty(resume.skills)}">
+        <div class="card-header">
+            <h2 class="h5 mb-0"><i class="fas fa-tools section-icon"></i>Skills</h2>
+        </div>
+        <div class="card-body">
+            <div th:each="skill : ${resume.skills}">
+                <span class="badge skill-badge" th:text="${skill}"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Experience -->
+    <div class="card" th:if="${not #lists.isEmpty(resume.experiences)}">
+        <div class="card-header">
+            <h2 class="h5 mb-0"><i class="fas fa-briefcase section-icon"></i>Experience</h2>
+        </div>
+        <div class="card-body">
+            <div th:each="exp : ${resume.experiences}" class="mb-4">
+                <div class="d-flex justify-content-between">
+                    <h5 th:text="${exp.company}"></h5>
+                    <span class="text-muted" th:text="${exp.duration}"></span>
+                </div>
+                <p class="text-primary fw-bold" th:text="${exp.position}"></p>
+                <p class="highlight" th:text="${exp.description}"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Education -->
+    <div class="card" th:if="${not #lists.isEmpty(resume.educations)}">
+        <div class="card-header">
+            <h2 class="h5 mb-0"><i class="fas fa-graduation-cap section-icon"></i>Education</h2>
+        </div>
+        <div class="card-body">
+            <div th:each="edu : ${resume.educations}" class="mb-4">
+                <div class="d-flex justify-content-between">
+                    <h5 th:text="${edu.institution}"></h5>
+                    <span class="text-muted" th:text="${edu.year}"></span>
+                </div>
+                <p class="text-primary fw-bold" th:text="${edu.degree}"></p>
+                <p th:text="'Field of Study: ' + ${edu.fieldOfStudy}"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons text-center">
+        <a href="/resumes/upload" class="btn btn-primary me-2">
+            <i class="fas fa-upload me-2"></i>Upload Another
+        </a>
+        <a href="/resumes/search" class="btn btn-outline-primary">
+            <i class="fas fa-search me-2"></i>Search Resumes
+        </a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -4,6 +4,7 @@ import com.kjr.rfp.model.Resume;
 import com.kjr.rfp.service.FileStorageService;
 import com.kjr.rfp.service.parser.ResumeParserService;
 import com.kjr.rfp.util.DataMaskingUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -55,7 +56,7 @@ public class ResumeController {
 
     // Then remove the private masking methods from the controller and update the references:
     @GetMapping("/preview/{id}")
-    public String previewResume(@PathVariable String id, Model model) {
+    public String previewResume(@PathVariable String id, Model model, HttpServletRequest request) {
         Optional<Resume> resumeOpt = resumeParserService.getResumeById(id)
                 .orElseThrow(() -> new RuntimeException("Resume not found"));
 
@@ -65,8 +66,15 @@ public class ResumeController {
         if (resume.getPhone() != null) {
             resume.setPhone(DataMaskingUtil.maskPhone(resume.getPhone()));
         }
+        if (resume.getTitle() == null) {
+            resume.setTitle("Professional Resume");
+        }
 
         model.addAttribute("resume", resume);
+        model.addAttribute("currentUri", request.getRequestURI()); // Instead of #request.getRequestURI()
+        // In controller
+        model.addAttribute("downloadCount", request.getSession().getAttribute("downloadCount"));
+
         return "preview-resume";
     }
 

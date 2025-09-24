@@ -11,6 +11,7 @@ import java.util.List;
 public class Resume {
     @Id
     private String id;
+    private String title;
     private String fileName;
     private String name;
     private String email;
