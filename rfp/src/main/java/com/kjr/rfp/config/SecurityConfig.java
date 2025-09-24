@@ -20,17 +20,16 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/resumes/download/**").authenticated()
-                        .requestMatchers("/resumes/thanks").permitAll()
+                        .requestMatchers("/download/resume/**").authenticated()
+                        .requestMatchers("/download/thanks", "/download/limit-reached").permitAll()
                         .requestMatchers("/login", "/resources/**").permitAll()
                         .anyRequest().permitAll()
                 )
                 .formLogin(form -> form
-                                .loginPage("/login")
-//                        .loginProcessingUrl("/perform_login")
-                                .defaultSuccessUrl("/login-success", true) // Always redirect here after login
-                                .failureUrl("/login?error=true")
-                                .permitAll()
+                        .loginPage("/login")
+                        .defaultSuccessUrl("/login-success", true) // Always redirect here after login
+                        .failureUrl("/login?error=true")
+                        .permitAll()
                 )
                 .logout(logout -> logout
                         .logoutSuccessUrl("/login?logout")

@@ -22,8 +22,9 @@
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
         <h1 class="mb-2 mb-md-0" th:text="${resume.name} + ' - Resume'">Resume Preview</h1>
         <div>
-            <a th:href="@{/resumes/download/{id}(id=${resume.id})}"
-               onclick="setTimeout(() => window.location.href='/resumes/thanks', 1000)"
+            <!-- Change the download button URL -->
+            <a th:href="@{/download/resume/{id}(id=${resume.id})}"
+               onclick="setTimeout(() => window.location.href='/download/thanks', 1000)"
                class="btn btn-success">Download</a>
         </div>
     </div>
