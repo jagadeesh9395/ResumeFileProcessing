@@ -107,6 +107,17 @@ public class ResumeController {
             if (authentication == null || !authentication.isAuthenticated()) {
                 throw new AccessDeniedException("Authentication required");
             }
+            // Track downloads per session
+            Integer downloadCount = (Integer) request.getSession().getAttribute("downloadCount");
+            if (downloadCount == null) {
+                downloadCount = 0;
+            }
+
+            // Check if maximum downloads reached
+            if (downloadCount >= 2) { // Example: limit to 5 downloads per session
+                response.sendRedirect("/resumes/download-limit-reached");
+                return;
+            }
 
             Resume resume = resumeParserService.findById(id)
                     .orElseThrow(() -> new RuntimeException("Resume not found"));
@@ -127,16 +138,21 @@ public class ResumeController {
                 IOUtils.copy(inputStream, outputStream);
             }
 
-            // Set a session attribute to indicate successful download
+            // Increment download count
+            request.getSession().setAttribute("downloadCount", downloadCount + 1);
             request.getSession().setAttribute("justDownloaded", true);
 
-            // Redirect to thanks page after download
             response.sendRedirect("/resumes/thanks");
             return;
 
         } catch (IOException e) {
             throw new RuntimeException("Error downloading file", e);
         }
+    }
+    @GetMapping("/download-limit-reached")
+    public String downloadLimitReached(Model model) {
+        model.addAttribute("message", "You have reached the maximum number of downloads for this session. Please login again.");
+        return "download-limit";
     }
 
 

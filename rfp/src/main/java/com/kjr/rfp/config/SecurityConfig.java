@@ -22,12 +22,13 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/resumes/download/**").authenticated()
                         .requestMatchers("/resumes/thanks").permitAll()
+                        .requestMatchers("/login", "/resources/**").permitAll()
                         .anyRequest().permitAll()
                 )
                 .formLogin(form -> form
                                 .loginPage("/login")
 //                        .loginProcessingUrl("/perform_login")
-                                .defaultSuccessUrl("/resumes/thanks")
+                                .defaultSuccessUrl("/login-success", true) // Always redirect here after login
                                 .failureUrl("/login?error=true")
                                 .permitAll()
                 )
