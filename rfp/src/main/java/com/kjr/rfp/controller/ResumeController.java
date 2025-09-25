@@ -1,7 +1,6 @@
 package com.kjr.rfp.controller;
 
 import com.kjr.rfp.model.Resume;
-import com.kjr.rfp.service.FileStorageService;
 import com.kjr.rfp.service.parser.ResumeParserService;
 import com.kjr.rfp.util.DataMaskingUtil;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,12 +18,9 @@ import java.util.Optional;
 public class ResumeController {
     private final ResumeParserService resumeParserService;
 
-    private final FileStorageService fileStorageService;
-
     @Autowired
-    public ResumeController(ResumeParserService resumeParserService, FileStorageService fileStorageService) {
+    public ResumeController(ResumeParserService resumeParserService) {
         this.resumeParserService = resumeParserService;
-        this.fileStorageService = fileStorageService;
     }
 
     @GetMapping("/upload")
@@ -54,7 +50,6 @@ public class ResumeController {
         return "search-resumes";
     }
 
-    // Then remove the private masking methods from the controller and update the references:
     @GetMapping("/preview/{id}")
     public String previewResume(@PathVariable String id, Model model, HttpServletRequest request) {
         Optional<Resume> resumeOpt = resumeParserService.getResumeById(id)
@@ -72,7 +67,6 @@ public class ResumeController {
 
         model.addAttribute("resume", resume);
         model.addAttribute("currentUri", request.getRequestURI()); // Instead of #request.getRequestURI()
-        // In controller
         model.addAttribute("downloadCount", request.getSession().getAttribute("downloadCount"));
 
         return "preview-resume";
