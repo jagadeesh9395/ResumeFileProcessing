@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 public class ResumeParserServiceImpl implements ResumeParserService {
@@ -101,7 +102,7 @@ public class ResumeParserServiceImpl implements ResumeParserService {
     private String extractName(String content) {
         // Pattern 1: Look for name at the very top of the document (most common case)
         Pattern namePattern = Pattern.compile(
-                "^(?i)(?:[A-Z][a-z]+(?:\\s+[A-Z][a-z]+)+)(?=\\s*\\n)",
+                "^(?i)(?:[A-Z][a-z]+(?:\\s+[A-Z][a-z]+)+)(?=\\s*\\n*\\t)",
                 Pattern.MULTILINE
         );
         Matcher matcher = namePattern.matcher(content);
@@ -164,27 +165,46 @@ public class ResumeParserServiceImpl implements ResumeParserService {
 
 
     private List<String> extractSkills(String content) {
-        // First try to find skills section using common headings
-        Pattern sectionPattern = Pattern.compile(
-                "(?i)(?:Skillset|TECHNICAL SKILLS|Skills|Technical Skills|Key Skills|Core Competencies)[:\\s]*(.*?)(?=\\n\\s*\\n|$)",
-                Pattern.DOTALL
-        );
-
-        Matcher sectionMatcher = sectionPattern.matcher(content);
-        if (sectionMatcher.find()) {
-            String skillsSection = sectionMatcher.group(1).trim();
-            // Extract individual skills from the section
-            return Arrays.asList(skillsSection.split("[,\\n]\\s*"));
-        }
-
-        // Fallback to simple keyword matching if no section found
+        // Add common skills that might be mentioned elsewhere in the section
         List<String> commonSkills = Arrays.asList(
                 "Java", "Spring", "Python", "JavaScript", "SQL",
                 "MongoDB", "React", "Angular", "Node.js", "AWS",
                 "Docker", "Kubernetes", "Git", "REST API", "Microservices"
         );
 
+        Pattern sectionPattern = Pattern.compile(
+                "(?i)(?:Skillset|TECHNICAL SKILLS|Skills|Technica|Key Skills|Core Competencies|" +
+                        String.join("|", commonSkills) + ")[:\\s]*(.*?)(?=\\n\\s*\\n|$)",
+                Pattern.DOTALL
+        );
+
+
+        Matcher sectionMatcher = sectionPattern.matcher(content);
+        if (sectionMatcher.find()) {
+            String skillsSection = sectionMatcher.group(1).trim();
+            // Clean up and split the skills
+            skillsSection = skillsSection.replaceAll("(?m)^\\s*[-•]\\s*", ""); // Remove bullet points
+            skillsSection = skillsSection.replaceAll("\\s*,\\s*", ","); // Normalize commas
+
+            // Split by newlines or commas
+            List<String> extractedSkills = Arrays.stream(skillsSection.split("[,\\n]"))
+                    .map(String::trim)
+                    .filter(skill -> !skill.isEmpty())
+                    .collect(Collectors.toList());
+
+
+            // Add any common skills that weren't already extracted
+            commonSkills.stream()
+                    .filter(skill -> content.toLowerCase().contains(skill.toLowerCase()))
+                    .filter(skill -> !extractedSkills.contains(skill))
+                    .forEach(extractedSkills::add);
+
+            return extractedSkills;
+        }
+
+        // Fallback to check for common skills in the entire content
         List<String> foundSkills = new ArrayList<>();
+
         for (String skill : commonSkills) {
             if (content.toLowerCase().contains(skill.toLowerCase())) {
                 foundSkills.add(skill);
@@ -193,14 +213,16 @@ public class ResumeParserServiceImpl implements ResumeParserService {
         return foundSkills;
     }
 
+
     private List<Experience> extractExperiences(String content) {
         List<Experience> experiences = new ArrayList<>();
 
         // First try to find experience section using common headings
         Pattern sectionPattern = Pattern.compile(
-                "(?i)(?:Work Experience|PROFESSIONAL EXPERIENCE|Employment History|Career History)[:\\s]*(.*?)(?=\\n\\s*(?:Education|Skills|$))",
+                "(?i)(?:Work Experience|PROFESSIONAL EXPERIENCE|Employment History|Career History)[:\\s]*(.*?)(?=\\n\\s*(?:Education|Skills|Projects|\\n\\s*\\n|$))",
                 Pattern.DOTALL
         );
+
 
         Matcher sectionMatcher = sectionPattern.matcher(content);
         if (sectionMatcher.find()) {
@@ -208,9 +230,13 @@ public class ResumeParserServiceImpl implements ResumeParserService {
 
             // Extract individual experiences from the section
             Pattern experiencePattern = Pattern.compile(
-                    "(?i)(.*?)\\s*\\n(.*?)\\s*\\n(.*?)\\s*\\n(.*?)(?=\\n\\s*\\n|$)",
+                    "(?i)([A-Z][\\w\\s-]+)\\s*\\n" +  // Company
+                            "([A-Z][\\w\\s-]+)\\s*\\n" +     // Position
+                            "([A-Za-z]+\\s*\\d{4}\\s*-\\s*[A-Za-z]+\\s*\\d{4}|Present).*?\\n" + // Duration
+                            "(.*?)(?=\\n\\s*\\n|$)",         // Description
                     Pattern.DOTALL
             );
+
 
             Matcher experienceMatcher = experiencePattern.matcher(experienceSection);
             while (experienceMatcher.find()) {
