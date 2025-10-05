@@ -11,8 +11,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class LoginController {
 
     @GetMapping("/login")
-    public String showLoginPage(@RequestParam(required = false) String redirect, Model model) {
-        if (redirect != null) {
+    public String showLoginPage(@RequestParam(required = false) String redirect, 
+                                @RequestParam(required = false) String error,
+                                Model model) {
+        if (redirect != null && !redirect.isEmpty()) {
             model.addAttribute("redirect", redirect);
         }
         return "login";

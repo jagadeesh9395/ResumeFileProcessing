@@ -70,7 +70,7 @@
         </div>
 
         <form th:action="@{/login}" method="post">
-            <input type="hidden" name="redirect" th:value="${param.redirect}"/>
+            <input type="hidden" name="redirect" th:value="${redirect != null ? redirect : param.redirect}"/>
             <div class="mb-3">
                 <label for="username" class="form-label">Username</label>
                 <input type="text" class="form-control" id="username" name="username" required autofocus>
