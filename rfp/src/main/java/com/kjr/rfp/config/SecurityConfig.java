@@ -1,15 +1,21 @@
 package com.kjr.rfp.config;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+
+import java.io.IOException;
 
 
 @Configuration
@@ -27,8 +33,15 @@ public class SecurityConfig {
                 )
                 .formLogin(form -> form
                         .loginPage("/login")
-                        .defaultSuccessUrl("/login-success", true) // Always redirect here after login
-                        .failureUrl("/login?error=true")
+                        .successHandler(customAuthenticationSuccessHandler())
+                        .failureHandler((request, response, exception) -> {
+                            String redirectUrl = request.getParameter("redirect");
+                            if (redirectUrl != null && !redirectUrl.isEmpty()) {
+                                response.sendRedirect("/login?error=true&redirect=" + redirectUrl);
+                            } else {
+                                response.sendRedirect("/login?error=true");
+                            }
+                        })
                         .permitAll()
                 )
                 .logout(logout -> logout
@@ -43,6 +56,18 @@ public class SecurityConfig {
                 );
 
         return http.build();
+    }
+
+    @Bean
+    public AuthenticationSuccessHandler customAuthenticationSuccessHandler() {
+        return (HttpServletRequest request, HttpServletResponse response, Authentication authentication) -> {
+            String redirectUrl = request.getParameter("redirect");
+            if (redirectUrl != null && !redirectUrl.isEmpty()) {
+                response.sendRedirect(redirectUrl);
+            } else {
+                response.sendRedirect("/resumes/search");
+            }
+        };
     }
 
     @Bean
